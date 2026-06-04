@@ -1,6 +1,6 @@
 # evcc-Carport-Display
 
-E-Ink display allowing me a quick glance of free battery space in my two BEVs and my Home Battery. Allows me to decide quickly how much energy to still expect today from my PV and which car to charge.
+E-Ink display allowing me a quick glance of free battery space in my two BEVs and my Home Battery. As I have only have one wallbox/charger for two cars, this allows me to decide quickly how much energy to still expect today from my PV and which car to charge.
 
 ![Display preview](eink-dashboard-800x480.png)
 
@@ -18,6 +18,10 @@ The project ships two variants of the same dashboard concept:
 Both variants share identical data sources, layout structure, and business logic (EVCC sensor priority, fallback to native vehicle APIs, active-vehicle highlighting).
 
 Good base for a display case for 3D-printing: [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655)
+
+## Gotchas
+In my set-up the two cars are parked side by side, with chargeports being not even a meter apart. So unplugging one and plugging the other goes to quick, for evcc to notice the change. I have reduced the evcc cycle to 15 seconds and wait a bit each time.
+Also the Mini seems not to support vehicle detection in evcc, so I do need to change to the Mini manually, as I care about propper charging history in evcc for each vehicle.
 
 ## Architecture
 
