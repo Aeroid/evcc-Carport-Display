@@ -20,7 +20,7 @@ Both variants share identical data sources, layout structure, and business logic
 Good base for a display case for 3D-printing: [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655)
 
 ## Gotchas / Open Issues
-In my set-up the two cars are parked side by side, with chargeports being not even a meter apart. So unplugging one and plugging the other goes to quick for evcc to notice the change. I have reduced the evcc cycle to 15 seconds and wait a bit each time. This pause seem to be the only way to terminate the old charging session for the evcc history and start a new one.
+In my set-up the two cars are parked side by side, with chargeports being not even a meter apart. So unplugging one and plugging the other goes to quick for evcc to notice the change. I have reduced the evcc cycle to 15 seconds and wait a bit each time. This pause seems to be the only way to terminate a charging session for the evcc history and start a new one.
 Also the Mini seems not to support vehicle detection in evcc, so I do need to change to the Mini manually, as I care about propper charging history in evcc for each vehicle.
 
 ## Architecture
