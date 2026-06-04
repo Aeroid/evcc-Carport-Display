@@ -17,6 +17,8 @@ The project ships two variants of the same dashboard concept:
 
 Both variants share identical data sources, layout structure, and business logic (EVCC sensor priority, fallback to native vehicle APIs, active-vehicle highlighting).
 
+Good base for a display case for 3D-printing: [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655)
+
 ## Architecture
 
 ```
