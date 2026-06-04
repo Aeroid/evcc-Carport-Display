@@ -1,0 +1,354 @@
+esphome:
+  name: esphome-web-38e5c8
+  friendly_name: ESPHome Web 38e5c8
+  min_version: 2025.11.0
+  name_add_mac_suffix: false
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+api:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# ── Zeit (für Refresh-Timestamp) ───────────────────────────
+time:
+  - platform: sntp
+    id: ha_time
+    timezone: "Europe/Berlin"
+
+# ── Logos ──────────────────────────────────────────────────
+image:
+  - file: logo_mini_inv.png
+    id: img_mini
+    type: BINARY
+
+  - file: logo_volvo_inv.png
+    id: img_volvo
+    type: BINARY
+
+  - file: logo_evcc_inv.png
+    id: img_evcc
+    type: BINARY
+
+# ── Fonts ──────────────────────────────────────────────────
+font:
+  - file: "gfonts://Roboto"
+    id: f_range
+    size: 160
+    glyphs: " -0123456789"
+
+  - file: "gfonts://Roboto"
+    id: f_unit
+    size: 34
+    glyphs: " -km%"
+
+  - file: "gfonts://Roboto"
+    id: f_lbl
+    size: 20
+    glyphs: " -ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  - file: "gfonts://Roboto"
+    id: f_val
+    size: 46
+    glyphs: " -0123456789"
+
+  - file: "gfonts://Roboto"
+    id: f_sub
+    size: 20
+    glyphs: " -kWh%"
+
+  - file: "gfonts://Roboto"
+    id: f_blbl
+    size: 20
+    glyphs: " -ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  - file: "gfonts://Roboto"
+    id: f_bval
+    size: 72
+    glyphs: " -+0123456789"
+
+  - file: "gfonts://Roboto"
+    id: f_bsub
+    size: 26
+    glyphs: " -kWh%"
+
+  - file: "gfonts://Roboto"
+    id: f_foot
+    size: 14
+    glyphs: " -+|:.0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+# ── HA Sensoren ────────────────────────────────────────────
+sensor:
+  - platform: homeassistant
+    id: soc_mini
+    entity_id: sensor.countryman_e_battery_ev_predicted_state_of_charge
+
+  - platform: homeassistant
+    id: range_mini
+    entity_id: sensor.countryman_e_range_ev_estimate_during_charging
+
+  - platform: homeassistant
+    id: cap_mini
+    entity_id: sensor.countryman_e_battery_hv_energy_content
+
+  - platform: homeassistant
+    id: soc_volvo
+    entity_id: sensor.volvo_xc40_batterie
+
+  - platform: homeassistant
+    id: range_volvo
+    entity_id: sensor.volvo_xc40_reichweite_bis_batterie_leer
+
+  - platform: homeassistant
+    id: soc_akku
+    entity_id: sensor.battery_percent
+
+  - platform: homeassistant
+    id: pv_rest
+    entity_id: sensor.verbleibende_pv_produktion
+
+  - platform: homeassistant
+    id: charged_energy
+    entity_id: sensor.evcc_carport_charged_energy
+
+  - platform: homeassistant
+    id: evcc_vehicle_soc
+    entity_id: sensor.evcc_carport_vehicle_soc
+
+  - platform: homeassistant
+    id: evcc_vehicle_range
+    entity_id: sensor.evcc_carport_vehicle_range
+
+text_sensor:
+  - platform: homeassistant
+    id: vehicle_name
+    entity_id: select.evcc_carport_vehicle_name
+
+# ── SPI ────────────────────────────────────────────────────
+spi:
+  clk_pin: GPIO13
+  mosi_pin: GPIO14
+
+# ── Globals + Interval + Display ───────────────────────────
+globals:
+  - id: refresh_interval_sec
+    type: float
+    restore_value: true
+    initial_value: '15.0'
+  - id: elapsed_sec
+    type: float
+    restore_value: false
+    initial_value: '0.0'
+
+number:
+  - platform: template
+    name: "Display Refresh Interval"
+    id: display_refresh_min
+    min_value: 0.03
+    max_value: 60
+    step: 0.01
+    unit_of_measurement: min
+    mode: box
+    optimistic: true
+    restore_value: true
+    initial_value: 0.25
+    on_value:
+      then:
+        - globals.set:
+            id: refresh_interval_sec
+            value: !lambda "return x * 60.0f;"
+        - globals.set:
+            id: elapsed_sec
+            value: !lambda "return id(refresh_interval_sec) - 2.0f;"
+
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          id(elapsed_sec) += 1.0f;
+          if (id(elapsed_sec) >= id(refresh_interval_sec)) {
+            id(elapsed_sec) = 0.0f;
+            id(eink).update();
+          }
+
+display:
+  - platform: waveshare_epaper
+    id: eink
+    cs_pin: GPIO15
+    dc_pin: GPIO27
+    busy_pin:
+      number: GPIO25
+      inverted: true
+    reset_pin: GPIO26
+    model: 7.50inv2p
+    rotation: 0°
+    full_update_every: 10
+    update_interval: never
+    lambda: |-
+      // Wenn Daten noch nicht verfügbar: bald nochmal versuchen
+      if (isnan(id(soc_akku).state)) {
+        id(elapsed_sec) = id(refresh_interval_sec) - 2.0f;
+      }
+
+      auto safe_int = [](float v, int fallback=0) -> int {
+        return (isnan(v) || std::isinf(v)) ? fallback : (int)round(v);
+      };
+
+      bool mini_active  = id(vehicle_name).state.find("db:16") != std::string::npos;
+      bool volvo_active = id(vehicle_name).state.find("db:8")  != std::string::npos;
+
+      int evcc_soc   = safe_int(id(evcc_vehicle_soc).state);
+      int evcc_range = safe_int(id(evcc_vehicle_range).state);
+
+      int soc_m   = (mini_active  && evcc_soc   > 0) ? evcc_soc   : safe_int(id(soc_mini).state);
+      int soc_v   = (volvo_active && evcc_soc   > 0) ? evcc_soc   : safe_int(id(soc_volvo).state);
+      int range_m = (mini_active  && evcc_range > 0) ? evcc_range : safe_int(id(range_mini).state);
+      int range_v = (volvo_active && evcc_range > 0) ? evcc_range : safe_int(id(range_volvo).state);
+      int soc_a   = safe_int(id(soc_akku).state);
+      float cap_m = isnan(id(cap_mini).state) ? 63.0f : id(cap_mini).state;
+      int free_m  = safe_int((1.0f - soc_m / 100.0f) * cap_m);
+      int free_v  = safe_int((1.0f - soc_v / 100.0f) * 82.0f);
+      int free_a  = safe_int((1.0f - soc_a / 100.0f) * 28.0f);
+      int pv      = safe_int(id(pv_rest).state);
+      int charged = safe_int(id(charged_energy).state);
+
+      const int W     = 800;
+      const int MID   = 400;
+      const int SPLIT = 360;
+      const int PAD   = 28;
+      const int OFF_KM  = 116;
+      const int OFF_SUB = 23;
+      const int OFF_BOT = 43;
+
+      it.fill(COLOR_OFF);
+
+      // ── Logos ──────────────────────────────────────────
+      it.image(20,  10, id(img_mini));
+      it.image(432, 13, id(img_volvo));
+
+      // ── MINI ───────────────────────────────────────────
+      it.printf(PAD, 58, id(f_range), COLOR_ON, "%d", range_m);
+      int rw_m = (range_m < 10) ? 90 : (range_m < 100) ? 175 : 255;
+      it.printf(PAD + rw_m + 5, 58 + OFF_KM, id(f_unit), COLOR_ON, "km");
+      it.horizontal_line(PAD, 252, MID - PAD * 2);
+      it.printf(PAD, 260, id(f_lbl), COLOR_ON, "BELEGT");
+      it.printf(PAD, 280, id(f_val), COLOR_ON, "%d", soc_m);
+      int vw_sm = (soc_m < 10) ? 26 : (soc_m < 100) ? 48 : 70;
+      it.printf(PAD + vw_sm + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "%%");
+      int x2_m = PAD + vw_sm + 52;
+      it.printf(x2_m, 260, id(f_lbl), COLOR_ON, "FREI");
+      it.printf(x2_m, 280, id(f_val), COLOR_ON, "%d", free_m);
+      int fw_sm = (free_m < 10) ? 26 : (free_m < 100) ? 48 : 70;
+      it.printf(x2_m + fw_sm + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "kWh");
+      if (mini_active) {
+        int x3_m = x2_m + fw_sm + 3 + 52;
+        it.printf(x3_m, 260, id(f_lbl), COLOR_ON, "GELADEN");
+        it.printf(x3_m, 280, id(f_val), COLOR_ON, "%d", charged);
+        int cw_m = (charged < 10) ? 26 : (charged < 100) ? 48 : 70;
+        it.printf(x3_m + cw_m + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "kWh");
+      }
+
+      // ── VOLVO ──────────────────────────────────────────
+      it.printf(MID + PAD, 58, id(f_range), COLOR_ON, "%d", range_v);
+      int rw_v = (range_v < 10) ? 90 : (range_v < 100) ? 175 : 255;
+      it.printf(MID + PAD + rw_v + 5, 58 + OFF_KM, id(f_unit), COLOR_ON, "km");
+      it.horizontal_line(MID + PAD, 252, MID - PAD * 2);
+      it.printf(MID + PAD, 260, id(f_lbl), COLOR_ON, "BELEGT");
+      it.printf(MID + PAD, 280, id(f_val), COLOR_ON, "%d", soc_v);
+      int vw_sv = (soc_v < 10) ? 26 : (soc_v < 100) ? 48 : 70;
+      it.printf(MID + PAD + vw_sv + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "%%");
+      int x2_v = MID + PAD + vw_sv + 52;
+      it.printf(x2_v, 260, id(f_lbl), COLOR_ON, "FREI");
+      it.printf(x2_v, 280, id(f_val), COLOR_ON, "%d", free_v);
+      int fw_sv = (free_v < 10) ? 26 : (free_v < 100) ? 48 : 70;
+      it.printf(x2_v + fw_sv + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "kWh");
+      if (volvo_active) {
+        int x3_v = x2_v + fw_sv + 3 + 52;
+        it.printf(x3_v, 260, id(f_lbl), COLOR_ON, "GELADEN");
+        it.printf(x3_v, 280, id(f_val), COLOR_ON, "%d", charged);
+        int cw_v = (charged < 10) ? 26 : (charged < 100) ? 48 : 70;
+        it.printf(x3_v + cw_v + 3, 280 + OFF_SUB, id(f_sub), COLOR_ON, "kWh");
+      }
+
+      // ── Aktiv-Rahmen ───────────────────────────────────
+      if (mini_active) {
+        for (int t = 0; t < 6; t++)
+          it.rectangle(t, t, MID - t * 2, SPLIT - t * 2);
+      }
+      if (volvo_active) {
+        for (int t = 0; t < 6; t++)
+          it.rectangle(MID + t, t, MID - t * 2, SPLIT - t * 2);
+      }
+
+      // ── Trennlinien ────────────────────────────────────
+      it.vertical_line(MID, 0, SPLIT);
+      it.horizontal_line(0, SPLIT, W);
+
+      // ── BOTTOM ─────────────────────────────────────────
+      const int BY     = SPLIT;
+      const int H      = 480;
+      const int BH     = H - SPLIT;
+      const int BVAL_Y = BY + 28;
+      const int BLBL_Y = BY + 8;
+
+      for (int t = 0; t < 3; t++) it.rectangle(18+t, BY+46+t, 46-t*2, 28-t*2);
+      it.filled_rectangle(23, BY + 51, 18, 18);
+      it.filled_rectangle(65, BY + 53, 7, 14);
+
+      it.filled_circle(762, BY + 60, 13);
+      for (int d = 0; d < 8; d++) {
+        float a = d * 3.14159f / 4.0f;
+        float dx = cosf(a), dy = sinf(a);
+        float nx = -dy * 1.5f, ny = dx * 1.5f;
+        for (int o = -1; o <= 1; o++) {
+          it.line(762 + (int)(18*dx + o*nx), BY + 60 + (int)(18*dy + o*ny),
+                  762 + (int)(27*dx + o*nx), BY + 60 + (int)(27*dy + o*ny));
+        }
+      }
+
+      const int XS = 115;
+      const int SW = 205;
+
+      it.printf(XS,        BLBL_Y, id(f_blbl), COLOR_ON, "BELEGT");
+      it.printf(XS,        BVAL_Y, id(f_bval), COLOR_ON, "%d", soc_a);
+      int bvw1 = (soc_a < 10) ? 40 : (soc_a < 100) ? 78 : 115;
+      it.printf(XS + bvw1 + 4, BVAL_Y + OFF_BOT, id(f_bsub), COLOR_ON, "%%");
+
+      it.printf(XS + SW,   BLBL_Y, id(f_blbl), COLOR_ON, "FREI");
+      it.printf(XS + SW,   BVAL_Y, id(f_bval), COLOR_ON, "%d", free_a);
+      int bvw2 = (free_a < 10) ? 40 : (free_a < 100) ? 78 : 115;
+      it.printf(XS + SW + bvw2 + 4, BVAL_Y + OFF_BOT, id(f_bsub), COLOR_ON, "kWh");
+
+      it.printf(XS + SW*2, BLBL_Y, id(f_blbl), COLOR_ON, "PV HEUTE NOCH");
+      it.printf(XS + SW*2, BVAL_Y, id(f_bval), COLOR_ON, "+%d", pv);
+      int bvw3 = (pv < 10) ? 78 : (pv < 100) ? 115 : 155;
+      it.printf(XS + SW*2 + bvw3 + 4, BVAL_Y + OFF_BOT, id(f_bsub), COLOR_ON, "kWh");
+
+      // ── Footer ─────────────────────────────────────────
+      char build_time[26];
+      App.get_build_time_string(build_time);
+      auto now = id(ha_time).now();
+      if (now.is_valid()) {
+        it.printf(8, H - 18, id(f_foot), COLOR_ON,
+          "firmware: %s  |  interval: %.2f min  |  refreshed: %02d.%02d %02d:%02d:%02d",
+          build_time,
+          id(refresh_interval_sec) / 60.0f,
+          now.day_of_month, now.month,
+          now.hour, now.minute, now.second);
+      } else {
+        it.printf(8, H - 18, id(f_foot), COLOR_ON,
+          "firmware: %s", build_time);
+      }
+
+      // EVCC-Logo unten rechts
+      it.image(W - 80 - 8, H - 22 - 4, id(img_evcc));
