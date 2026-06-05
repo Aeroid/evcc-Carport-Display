@@ -42,10 +42,10 @@ Victron / Solcast PV ─────► Home Assistant
 ## What it shows
 
 **Per vehicle (top ¾)**
+- Thick border around the vehicle currently connected to the wallbox
 - Range in km — the dominant figure
 - SOC % and free capacity (kWh)
-- Energy charged this session (kWh) — shown when vehicle is connected
-- Thick border around the vehicle currently connected to the wallbox
+- Energy charged this session (kWh) — shown for connected vehicle
 
 **Home energy (bottom ¼)**
 - Home battery: SOC % and free capacity (kWh)
