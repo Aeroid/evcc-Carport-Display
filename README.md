@@ -18,7 +18,7 @@ The project ships two variants of the same dashboard concept:
 Both variants share identical data sources, layout structure, and business logic (EVCC sensor priority, fallback to native vehicle APIs, active-vehicle highlighting).
 
 ## Hardware
-This project uses a [Waveshare 800×480, 7.5inch E-Ink display HAT for Raspberry Pi](https://www.waveshare.com/7.5inch-e-Paper-HAT.htm) (no Raspi needed, despite the name).
+This project uses a [Waveshare 800×480, 7.5inch E-Ink display HAT for Raspberry Pi](https://www.waveshare.com/7.5inch-e-Paper-HAT.htm) (no Raspi needed, despite the name) and the [Waveshare ESP32 Driver Board](https://www.waveshare.com/e-Paper-ESP32-Driver-Board.htm).
 Good base for a display case for 3D-printing: [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655), but I modded that quite a bit to fit my purpose.
 Additionally you'll only need a power supply.
 
