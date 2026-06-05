@@ -17,11 +17,6 @@ The project ships two variants of the same dashboard concept:
 
 Both variants share identical data sources, layout structure, and business logic (EVCC sensor priority, fallback to native vehicle APIs, active-vehicle highlighting).
 
-## Hardware
-This project uses a [Waveshare 800×480, 7.5inch E-Ink display HAT for Raspberry Pi](https://www.waveshare.com/7.5inch-e-Paper-HAT.htm) (no Raspi needed, despite the name) and the [Waveshare ESP32 Driver Board](https://www.waveshare.com/e-Paper-ESP32-Driver-Board.htm).
-Good base for a display case for 3D-printing: [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655), but I modded that quite a bit to fit my purpose.
-Additionally you'll only need a power supply.
-
 ## Gotchas / Open Issues
 In my set-up the two cars are parked side by side, with chargeports being not even a meter apart. So unplugging one and plugging the other goes to quick for evcc to notice the change. I have reduced the evcc cycle to 15 seconds and wait a bit each time. This pause seems to be the only way to terminate a charging session for the evcc history and start a new one.
 Also the Mini seems not to support vehicle detection in evcc, so I do need to change to the Mini manually, as I care about propper charging history in evcc for each vehicle.
@@ -34,14 +29,15 @@ evcc (KEBA wallbox) ────────► Home Assistant ──► ESPHome
 Victron / Solcast PV ──────► Home Assistant ──► Lovelace card
 ```
 
-## Hardware (E-Ink variant)
+## Hardware
 
-| Component | Model |
-|-----------|-------|
-| Display | Waveshare 7.5" V2 (800×480 px, B/W) — `075BN-T7-D2` |
-| Controller | Waveshare ESP32 Driver Board |
-| Firmware | ESPHome, Arduino framework |
-| Power | USB-C, mains-powered (permanent) |
+| Component | Model | Link | Note |
+|-----------|-------|------|------|
+| Display | Waveshare 7.5" V2 (800×480 px, B/W) — `075BN-T7-D2`  | [Waveshare 800×480, 7.5inch E-Ink display HAT for Raspberry Pi](https://www.waveshare.com/7.5inch-e-Paper-HAT.htm) | no Raspi needed, despite the name
+| Controller | Waveshare ESP32 Driver Board | [Waveshare ESP32 Driver Board](https://www.waveshare.com/e-Paper-ESP32-Driver-Board.htm) | |
+| Firmware | ESPHome, Arduino framework | | |
+| Power | USB-C, mains-powered (permanent) | | |
+| Case | 3D printed | [Waveshare 7.5inch e-paper display case](https://www.thingiverse.com/thing:4204655) | modded that quite a bit to fit my purpose |
 
 ## What it shows
 
