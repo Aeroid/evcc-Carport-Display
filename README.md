@@ -25,7 +25,7 @@ Also the Mini seems not to support vehicle detection in evcc, so I do need to ch
 
 ```
 BMW CarData / Volvo API ──► Home Assistant
-evcc (KEBA wallbox) ──────► Home Assistant ──► ESPHome (ESP32) ──► E-Ink Display / Lovelace card
+evcc (KEBA wallbox) ──────► Home Assistant ──► Lovelace card / ESPHome (ESP32) ──► E-Ink Display
 Victron / Solcast PV ─────► Home Assistant
 ```
 
